@@ -1,0 +1,86 @@
+name: Sparkwise n8n-connector NPM Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allows manual runs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: node:20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install --save-dev typescript
+          npm ci
+
+      - name: Build package
+        run: |
+          echo "building package"
+          npm run clean
+          npm run build
+          echo "Compile complete."
+
+  unit-test:
+    runs-on: ubuntu-latest
+    container: node:20
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install --save-dev typescript
+          npm ci
+
+      - name: Run unit tests
+        run: |
+          echo "Running unit tests...."
+          echo "Unit tests not found"
+
+  lint-test:
+    runs-on: ubuntu-latest
+    container: node:20
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install --save-dev typescript
+          npm ci
+
+      - name: Lint code
+        run: |
+          echo "Linting code using n8n-linter..."
+          npm run lint
+          echo "No lint issues found."
+
+  deploy:
+    runs-on: ubuntu-latest
+    container: node:20
+    needs:
+      - unit-test
+      - lint-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          npm install --save-dev typescript
+          npm ci
+
+      - name: Deploy to production
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Deploying application..."
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm publish
+          rm ~/.npmrc
+          echo "Done"
