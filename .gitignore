@@ -1,0 +1,12 @@
+.DS_Store
+.idea
+.tmp
+.vscode
+.vscode/launch.json
+dist/tsconfig.tsbuildinfo
+dist/nodes/Sparkwise/*.ts
+dist/credentials/*.ts
+node_modules
+npm-debug.log*
+tmp
+yarn.lock

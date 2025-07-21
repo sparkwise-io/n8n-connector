@@ -1,0 +1,45 @@
+default:
+  image: node:20
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+
+before_script:
+  - npm install --save-dev typescript
+  - npm ci
+
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
+  script:
+    - echo "building package"
+    - npm run clean
+    - npm run build
+    - echo "Compile complete."
+
+unit-test-job:   # This job runs in the test stage.
+  stage: test    # It only starts when the job in the build stage completes successfully.
+  script:
+    - echo "Running unit tests...."
+    - echo "Unit tests not found"
+
+lint-test-job:   # This job also runs in the test stage.
+  stage: test    # It can run at the same time as unit-test-job (in parallel).
+  script:
+    - echo "Linting code using n8n-linter..."
+    - npm run lint
+    - echo "No lint issues found."
+
+deploy-job:      # This job only runs in the deploy stage when manually started.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  environment: production
+  script:
+    - echo "Deploying application..."
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc # set api key
+    - npm publish
+    - rm  ~/.npmrc  # rm api key
+    - echo "Done"
+  only:
+    - main
+  when: manual
