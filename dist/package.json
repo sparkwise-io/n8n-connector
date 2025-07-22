@@ -1,19 +1,19 @@
 {
     "name": "n8n-nodes-sparkwise",
-    "version": "1.0.2",
+    "version": "1.0.7",
     "description": "Execute a Sparkwise model",
     "keywords": [
         "n8n-community-node-package"
     ],
     "license": "MIT",
-    "homepage": "https://gitlab.com/sparkwise/n8n-connector",
+    "homepage": "https://github.com/sparkwise-io/n8n-connector",
     "author": {
-        "name": "Bohdain Kroes",
-        "email": "bohdain.kroes@architechts.nl"
+        "name": "Support sparkwise",
+        "email": "support@sparkwise.io"
     },
     "repository": {
         "type": "git",
-        "url": "https://gitlab.com:sparkwise/n8n-connector.git"
+        "url": "https://github.com:sparkwise-io/n8n-connector.git"
     },
     "engines": {
         "node": ">=20.19"

@@ -62,15 +62,15 @@ export class SparkwiseApi implements ICredentialType {
 				password: '={{ $credentials.password }}',
 			},
 			body: {
-				email: '{{ $credentials.username }}',
-				password: '{{ $credentials.password }}',
+				email: '={{ $credentials.username }}',
+				password: '={{ $credentials.password }}',
 			},
 		},
 	};
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: '{{ $credentials.sparkwiseUrl }}',
+			baseURL: '={{ $credentials.sparkwiseUrl }}',
 			url: '/auth-v1/login',
 			method: 'POST',
 		},

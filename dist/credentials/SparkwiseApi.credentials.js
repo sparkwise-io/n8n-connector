@@ -49,6 +49,26 @@ class SparkwiseApi {
                 default: '',
             },
         ];
+        this.authenticate = {
+            type: 'generic',
+            properties: {
+                auth: {
+                    username: '={{ $credentials.username }}',
+                    password: '={{ $credentials.password }}',
+                },
+                body: {
+                    email: '={{ $credentials.username }}',
+                    password: '={{ $credentials.password }}',
+                },
+            },
+        };
+        this.test = {
+            request: {
+                baseURL: '={{ $credentials.sparkwiseUrl }}',
+                url: '/auth-v1/login',
+                method: 'POST',
+            },
+        };
     }
 }
 exports.SparkwiseApi = SparkwiseApi;
