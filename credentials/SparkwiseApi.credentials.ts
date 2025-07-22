@@ -1,6 +1,7 @@
 import {
 	Icon,
 	ICredentialType,
+	ICredentialTestRequest,
 	INodeProperties
 } from 'n8n-workflow';
 
@@ -9,6 +10,12 @@ export class SparkwiseApi implements ICredentialType {
 	name = 'sparkwiseApi';
 	icon: Icon = 'file:Sparkwise.svg';
 	documentationUrl = 'https://sparkwise.io/';
+	test : ICredentialTestRequest =  {
+		request: {
+			baseURL: '{{ $credentials.sparkwiseUrl }}',
+			url: '/auth-v1/login',
+		},
+	};
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Sparkwise URL',
