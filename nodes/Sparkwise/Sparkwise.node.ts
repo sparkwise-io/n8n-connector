@@ -8,7 +8,6 @@ import {
 	NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
-import { URL } from 'url';
 
 const SPARKWISE_CREDENTIALS_TYPE = 'sparkwiseApi';
 
