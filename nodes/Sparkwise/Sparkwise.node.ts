@@ -43,6 +43,7 @@ export class Sparkwise implements INodeType {
 							headers: { 'Content-Type': 'application/json', accept: 'application/json' },
 							body: { email: username, password: password },
 							json: true,
+							encoding: 'arraybuffer'
 						},
 					);
 
@@ -101,6 +102,7 @@ export class Sparkwise implements INodeType {
 							}
 						});
 				} catch (error) {
+					console.log(error)
 					throw new NodeOperationError(
 						this.getNode(),
 						`Failed to load model endpoints: ${error.message}`,
