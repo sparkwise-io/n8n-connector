@@ -64,7 +64,7 @@ class SparkwiseApi {
         };
         this.test = {
             request: {
-                baseURL: '={{ $credentials.sparkwiseUrl }}',
+                baseURL: 'https://service.acc.sparkwise.io',
                 url: '/auth-v1/login',
                 method: 'POST',
             },

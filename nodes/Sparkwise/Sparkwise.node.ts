@@ -3,16 +3,20 @@ import {
 	ILoadOptionsFunctions,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
+	NodeApiError,
 	NodeConnectionType,
 	NodeOperationError,
 } from 'n8n-workflow';
+
+const SPARKWISE_CREDENTIALS_TYPE = 'sparkwiseApi';
 
 export class Sparkwise implements INodeType {
 	methods = {
 		loadOptions: {
 			async getEndpoints(this: ILoadOptionsFunctions) {
 				try {
-					const credentials = await this.getCredentials('sparkwiseApi');
+					const credentials = await this.getCredentials(SPARKWISE_CREDENTIALS_TYPE);
 					let sparkwiseUrl = credentials.sparkwiseUrl as string;
 					let username = credentials.username as string;
 					let password = credentials.password as string;
@@ -30,20 +34,21 @@ export class Sparkwise implements INodeType {
 					}
 
 					sparkwiseUrl = sparkwiseUrl.endsWith('/') ? sparkwiseUrl.slice(0, -1) : sparkwiseUrl;
-
-					const loginResponse = await this.helpers.request({
-						method: 'POST',
-						url: `${sparkwiseUrl}/auth-v1/login`,
-						headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-						body: { email: username, password: password },
-						json: true,
-					});
+					const loginResponse = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						SPARKWISE_CREDENTIALS_TYPE,
+						{
+							method: 'POST',
+							url: `${sparkwiseUrl}/auth-v1/login`,
+							headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+							body: { email: username, password: password },
+							json: true,
+						},
+					);
 
 					const token = loginResponse.tokens.idToken;
 					if (!token) {
 						throw new NodeOperationError(this.getNode(), 'Login failed: No token returned');
-					} else {
-						console.log(token);
 					}
 
 					let headers: Record<string, string> = {
@@ -54,12 +59,16 @@ export class Sparkwise implements INodeType {
 						headers['sw-tenant-id'] = sparkwiseTenantId;
 					}
 
-					const publications = await this.helpers.request({
-						method: 'GET',
-						url: `${sparkwiseUrl}/registry-v1/publications`,
-						headers: headers,
-						json: true,
-					});
+					const publications = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						SPARKWISE_CREDENTIALS_TYPE,
+						{
+							method: 'GET',
+							url: `${sparkwiseUrl}/registry-v1/publications`,
+							headers: headers,
+							json: true,
+						},
+					);
 
 					if (!Array.isArray(publications)) {
 						throw new NodeOperationError(this.getNode(), 'Publications response is not an array');
@@ -88,12 +97,10 @@ export class Sparkwise implements INodeType {
 								new URL(option.value);
 								return true;
 							} catch {
-								console.warn('Invalid URL filtered out:', option.value);
 								return false;
 							}
 						});
 				} catch (error) {
-					console.error('Error loading model endpoints:', error);
 					throw new NodeOperationError(
 						this.getNode(),
 						`Failed to load model endpoints: ${error.message}`,
@@ -178,10 +185,6 @@ export class Sparkwise implements INodeType {
 		const items = this.getInputData();
 		const returnData = [];
 
-		console.log('EXECUTE items:')
-		console.log(items.length)
-		console.log(items)
-
 		for (let i = 0; i < items.length; i++) {
 			const credentials = await this.getCredentials('sparkwiseApi');
 			const endpointUrl = this.getNodeParameter('endpointUrl', i) as string;
@@ -215,24 +218,43 @@ export class Sparkwise implements INodeType {
 				headers['x-functions-key'] = credentials.apiKey as string;
 			}
 
-			console.log('BODY');
-			console.log(body);
-
 			let response;
 			try {
-				response = await this.helpers.request({
-					method: 'POST',
-					url: endpointUrl,
-					headers,
-					body,
-					json: true,
-				});
+				response = await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					SPARKWISE_CREDENTIALS_TYPE,
+					{
+						method: 'POST',
+						url: endpointUrl,
+						headers,
+						body,
+						json: true,
+					},
+				);
 			} catch (error) {
 				if (this.continueOnFail()) {
 					returnData.push({ error: error.message });
 					continue;
 				}
-				throw error;
+
+				if (error.httpCode === '404') {
+					const resource = this.getNodeParameter('resource', 0) as string;
+					const errorOptions = {
+						message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} not found`,
+						description:
+							'The requested resource could not be found. Please check your input parameters.',
+					};
+					throw new NodeApiError(this.getNode(), error as JsonObject, errorOptions);
+				}
+
+				if (error.httpCode === '401') {
+					throw new NodeApiError(this.getNode(), error as JsonObject, {
+						message: 'Authentication failed',
+						description: 'Please check your credentials and try again.',
+					});
+				}
+
+				throw new NodeApiError(this.getNode(), error as JsonObject);
 			}
 
 			returnData.push(response);
