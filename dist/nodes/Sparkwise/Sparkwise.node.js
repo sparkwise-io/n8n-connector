@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sparkwise = void 0;
 const n8n_workflow_1 = require("n8n-workflow");
+const url_1 = require("url");
 const SPARKWISE_CREDENTIALS_TYPE = 'sparkwiseApi';
 class Sparkwise {
     constructor() {
@@ -67,7 +68,7 @@ class Sparkwise {
                         })
                             .filter((option) => {
                             try {
-                                new URL(option.value);
+                                new url_1.URL(option.value);
                                 return true;
                             }
                             catch {
@@ -167,7 +168,7 @@ class Sparkwise {
                 throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'No endpoint URL selected');
             }
             try {
-                new URL(endpointUrl);
+                new url_1.URL(endpointUrl);
             }
             catch {
                 throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Invalid endpoint URL: ${endpointUrl}`);
