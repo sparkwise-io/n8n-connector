@@ -2,13 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Sparkwise = void 0;
 const n8n_workflow_1 = require("n8n-workflow");
+const SPARKWISE_CREDENTIALS_TYPE = 'sparkwiseApi';
 class Sparkwise {
     constructor() {
         this.methods = {
             loadOptions: {
                 async getEndpoints() {
                     try {
-                        const credentials = await this.getCredentials('sparkwiseApi');
+                        const credentials = await this.getCredentials(SPARKWISE_CREDENTIALS_TYPE);
                         let sparkwiseUrl = credentials.sparkwiseUrl;
                         let username = credentials.username;
                         let password = credentials.password;
@@ -20,7 +21,7 @@ class Sparkwise {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Invalid sparkwise Url: must start with http:// or https://');
                         }
                         sparkwiseUrl = sparkwiseUrl.endsWith('/') ? sparkwiseUrl.slice(0, -1) : sparkwiseUrl;
-                        const loginResponse = await this.helpers.request({
+                        const loginResponse = await this.helpers.httpRequestWithAuthentication.call(this, SPARKWISE_CREDENTIALS_TYPE, {
                             method: 'POST',
                             url: `${sparkwiseUrl}/auth-v1/login`,
                             headers: { 'Content-Type': 'application/json', accept: 'application/json' },
@@ -31,9 +32,6 @@ class Sparkwise {
                         if (!token) {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Login failed: No token returned');
                         }
-                        else {
-                            console.log(token);
-                        }
                         let headers = {
                             accept: 'application/json',
                             Authorization: token,
@@ -41,7 +39,7 @@ class Sparkwise {
                         if (sparkwiseTenantId !== '') {
                             headers['sw-tenant-id'] = sparkwiseTenantId;
                         }
-                        const publications = await this.helpers.request({
+                        const publications = await this.helpers.httpRequestWithAuthentication.call(this, SPARKWISE_CREDENTIALS_TYPE, {
                             method: 'GET',
                             url: `${sparkwiseUrl}/registry-v1/publications`,
                             headers: headers,
@@ -73,13 +71,11 @@ class Sparkwise {
                                 return true;
                             }
                             catch {
-                                console.warn('Invalid URL filtered out:', option.value);
                                 return false;
                             }
                         });
                     }
                     catch (error) {
-                        console.error('Error loading model endpoints:', error);
                         throw new n8n_workflow_1.NodeOperationError(this.getNode(), `Failed to load model endpoints: ${error.message}`);
                     }
                 },
@@ -157,9 +153,6 @@ class Sparkwise {
     async execute() {
         const items = this.getInputData();
         const returnData = [];
-        console.log('EXECUTE items:');
-        console.log(items.length);
-        console.log(items);
         for (let i = 0; i < items.length; i++) {
             const credentials = await this.getCredentials('sparkwiseApi');
             const endpointUrl = this.getNodeParameter('endpointUrl', i);
@@ -186,11 +179,9 @@ class Sparkwise {
                 headers['x-api-Key'] = credentials.apiKey;
                 headers['x-functions-key'] = credentials.apiKey;
             }
-            console.log('BODY');
-            console.log(body);
             let response;
             try {
-                response = await this.helpers.request({
+                response = await this.helpers.httpRequestWithAuthentication.call(this, SPARKWISE_CREDENTIALS_TYPE, {
                     method: 'POST',
                     url: endpointUrl,
                     headers,
@@ -203,7 +194,21 @@ class Sparkwise {
                     returnData.push({ error: error.message });
                     continue;
                 }
-                throw error;
+                if (error.httpCode === '404') {
+                    const resource = this.getNodeParameter('resource', 0);
+                    const errorOptions = {
+                        message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} not found`,
+                        description: 'The requested resource could not be found. Please check your input parameters.',
+                    };
+                    throw new n8n_workflow_1.NodeApiError(this.getNode(), error, errorOptions);
+                }
+                if (error.httpCode === '401') {
+                    throw new n8n_workflow_1.NodeApiError(this.getNode(), error, {
+                        message: 'Authentication failed',
+                        description: 'Please check your credentials and try again.',
+                    });
+                }
+                throw new n8n_workflow_1.NodeApiError(this.getNode(), error);
             }
             returnData.push(response);
         }

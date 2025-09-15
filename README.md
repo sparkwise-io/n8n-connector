@@ -5,13 +5,15 @@ This node allows you connect N8N to Sparkwise.
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Features](#features)
-- [Input](#input)
-- [Output](#output)
-- [Example Usage](#example-usage)
-- [Authentication](#authentication)
-- [Resources](#resources)
+- [Sparkwise Node](#sparkwise-node)
+	- [Table of Contents](#table-of-contents)
+	- [Installation](#installation)
+		- [Features](#features)
+		- [Input](#input)
+		- [Output](#output)
+		- [Example Usage](#example-usage)
+		- [Authentication](#authentication)
+	- [Resources](#resources)
 
 ---
 
@@ -30,6 +32,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
 ### Input
 
 The node accepts:
+
 - Storing credentials
 - Sparkwise Tenant selection
 - Sparkwise Model selection
@@ -43,6 +46,7 @@ The node accepts:
 ### Example Usage
 
 Perfect for:
+
 - Dynamic pricing
 - Determine autonomous claims handling
 - Determine discounts and pricing

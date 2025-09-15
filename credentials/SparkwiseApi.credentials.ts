@@ -70,7 +70,7 @@ export class SparkwiseApi implements ICredentialType {
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: 'https://service.acc.sparkwise.io',
+			baseURL: '={{ $credentials.sparkwiseUrl }}',
 			url: '/auth-v1/login',
 			method: 'POST',
 		},
