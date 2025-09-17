@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-sparkwise",
-  "version": "1.0.10",
+  "version": "1.0.9post1",
   "description": "Execute a Sparkwise model",
   "keywords": [
     "n8n-community-node-package"
