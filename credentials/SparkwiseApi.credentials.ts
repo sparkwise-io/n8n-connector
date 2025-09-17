@@ -1,10 +1,15 @@
 import {
-	IAuthenticateGeneric,
+	// IAuthenticateGeneric,
+	IHttpRequestHelper,
 	Icon,
 	ICredentialType,
 	ICredentialTestRequest,
 	INodeProperties,
+	ICredentialDataDecryptedObject,
+	IHttpRequestOptions,
 } from 'n8n-workflow';
+
+import { LoggerProxy } from 'n8n-workflow';
 
 export class SparkwiseApi implements ICredentialType {
 	displayName = 'Sparkwise API';
@@ -52,26 +57,74 @@ export class SparkwiseApi implements ICredentialType {
 			},
 			default: '',
 		},
+		{
+			displayName: 'IdToken',
+			name: 'idToken',
+			type: 'hidden',
+			typeOptions: {
+				expirable: true,
+			},
+			default: '',
+			description: 'stores the idToken retrieved in the preAuthentication',
+		},
 	];
 
-	authenticate: IAuthenticateGeneric = {
-		type: 'generic',
-		properties: {
-			auth: {
-				username: '={{ $credentials.username }}',
-				password: '={{ $credentials.password }}',
-			},
+	// preAuthentication logs in on Sparkwise using username/password to retrieve token
+	// which is passed in subsequent calls to retrieve information from Sparkwise
+	preAuthentication = async function (
+		this: IHttpRequestHelper,
+		credentials: ICredentialDataDecryptedObject,
+	) {
+		LoggerProxy.debug('preAuthentication called');
+
+		const response = await this.helpers.httpRequest({
+			method: 'POST',
+			url: `${credentials.sparkwiseUrl}/auth-v1/login`,
+			headers: { 'Content-Type': 'application/json', accept: 'application/json' },
 			body: {
-				email: '={{ $credentials.username }}',
-				password: '={{ $credentials.password }}',
+				email: credentials.username,
+				password: credentials.password,
 			},
-		},
+			json: true,
+			encoding: 'json',
+		});
+
+		// The idToken will be merged with the credential data so its usable in authentication method
+		return {
+			idToken: response.tokens.idToken,
+		};
+	};
+
+	authenticate = async (
+		credentials: ICredentialDataDecryptedObject,
+		requestOptions: IHttpRequestOptions,
+	): Promise<IHttpRequestOptions> => {
+		LoggerProxy.debug('authenticate called');
+
+		// add idToken as Authorization header
+		requestOptions.headers = {
+			...(requestOptions.headers || {}),
+			Authorization: `Bearer ${credentials.idToken}`,
+		};
+
+		// Conditionally add sw-tenant-id if sparkwiseTenantId is not empty
+		// this is only necessary when user has multiple tenants on Sparkwise, otherwise it can be omitted
+		if (credentials.sparkwiseTenantId && credentials.sparkwiseTenantId !== '') {
+			requestOptions.headers['sw-tenant-id'] = credentials.sparkwiseTenantId;
+		}
+
+		return requestOptions;
 	};
 
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{ $credentials.sparkwiseUrl }}',
 			url: '/auth-v1/login',
+			headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+			body: {
+				email: '={{ $credentials.username }}',
+				password: '={{ $credentials.password }}',
+			},
 			method: 'POST',
 		},
 	};

@@ -18,13 +18,8 @@ export class Sparkwise implements INodeType {
 				try {
 					const credentials = await this.getCredentials(SPARKWISE_CREDENTIALS_TYPE);
 					let sparkwiseUrl = credentials.sparkwiseUrl as string;
-					let username = credentials.username as string;
-					let password = credentials.password as string;
-					let sparkwiseTenantId = credentials.sparkwiseTenant as string;
 
-					username = username.trim();
 					sparkwiseUrl = sparkwiseUrl.trim();
-					sparkwiseTenantId = sparkwiseTenantId.trim();
 
 					if (!sparkwiseUrl || !sparkwiseUrl.startsWith('http')) {
 						throw new NodeOperationError(
@@ -32,41 +27,17 @@ export class Sparkwise implements INodeType {
 							'Invalid sparkwise Url: must start with http:// or https://',
 						);
 					}
-
 					sparkwiseUrl = sparkwiseUrl.endsWith('/') ? sparkwiseUrl.slice(0, -1) : sparkwiseUrl;
-					const loginResponse = await this.helpers.httpRequestWithAuthentication.call(
-						this,
-						SPARKWISE_CREDENTIALS_TYPE,
-						{
-							method: 'POST',
-							url: `${sparkwiseUrl}/auth-v1/login`,
-							headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-							body: { email: username, password: password },
-							json: true,
-						},
-					);
 
-					const token = loginResponse.tokens.idToken;
-					if (!token) {
-						throw new NodeOperationError(this.getNode(), 'Login failed: No token returned');
-					}
-
-					let headers: Record<string, string> = {
-						accept: 'application/json',
-						Authorization: token,
-					};
-					if (sparkwiseTenantId !== '') {
-						headers['sw-tenant-id'] = sparkwiseTenantId;
-					}
-
+					// retrieve all publications
 					const publications = await this.helpers.httpRequestWithAuthentication.call(
 						this,
 						SPARKWISE_CREDENTIALS_TYPE,
 						{
 							method: 'GET',
 							url: `${sparkwiseUrl}/registry-v1/publications`,
-							headers: headers,
 							json: true,
+							encoding: 'json',
 						},
 					);
 

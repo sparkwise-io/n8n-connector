@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SparkwiseApi = void 0;
+const n8n_workflow_1 = require("n8n-workflow");
 class SparkwiseApi {
     constructor() {
         this.displayName = 'Sparkwise API';
@@ -48,24 +49,54 @@ class SparkwiseApi {
                 },
                 default: '',
             },
-        ];
-        this.authenticate = {
-            type: 'generic',
-            properties: {
-                auth: {
-                    username: '={{ $credentials.username }}',
-                    password: '={{ $credentials.password }}',
+            {
+                displayName: 'IdToken',
+                name: 'idToken',
+                type: 'hidden',
+                typeOptions: {
+                    expirable: true,
                 },
-                body: {
-                    email: '={{ $credentials.username }}',
-                    password: '={{ $credentials.password }}',
-                },
+                default: '',
+                description: 'stores the idToken retrieved in the preAuthentication',
             },
+        ];
+        this.preAuthentication = async function (credentials) {
+            n8n_workflow_1.LoggerProxy.debug('preAuthentication called');
+            const response = await this.helpers.httpRequest({
+                method: 'POST',
+                url: `${credentials.sparkwiseUrl}/auth-v1/login`,
+                headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+                body: {
+                    email: credentials.username,
+                    password: credentials.password,
+                },
+                json: true,
+                encoding: 'json',
+            });
+            return {
+                idToken: response.tokens.idToken,
+            };
+        };
+        this.authenticate = async (credentials, requestOptions) => {
+            n8n_workflow_1.LoggerProxy.debug('authenticate called');
+            requestOptions.headers = {
+                ...(requestOptions.headers || {}),
+                Authorization: `Bearer ${credentials.idToken}`,
+            };
+            if (credentials.sparkwiseTenantId && credentials.sparkwiseTenantId !== '') {
+                requestOptions.headers['sw-tenant-id'] = credentials.sparkwiseTenantId;
+            }
+            return requestOptions;
         };
         this.test = {
             request: {
                 baseURL: '={{ $credentials.sparkwiseUrl }}',
                 url: '/auth-v1/login',
+                headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+                body: {
+                    email: '={{ $credentials.username }}',
+                    password: '={{ $credentials.password }}',
+                },
                 method: 'POST',
             },
         };

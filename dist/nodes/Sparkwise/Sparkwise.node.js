@@ -11,39 +11,16 @@ class Sparkwise {
                     try {
                         const credentials = await this.getCredentials(SPARKWISE_CREDENTIALS_TYPE);
                         let sparkwiseUrl = credentials.sparkwiseUrl;
-                        let username = credentials.username;
-                        let password = credentials.password;
-                        let sparkwiseTenantId = credentials.sparkwiseTenant;
-                        username = username.trim();
                         sparkwiseUrl = sparkwiseUrl.trim();
-                        sparkwiseTenantId = sparkwiseTenantId.trim();
                         if (!sparkwiseUrl || !sparkwiseUrl.startsWith('http')) {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Invalid sparkwise Url: must start with http:// or https://');
                         }
                         sparkwiseUrl = sparkwiseUrl.endsWith('/') ? sparkwiseUrl.slice(0, -1) : sparkwiseUrl;
-                        const loginResponse = await this.helpers.httpRequestWithAuthentication.call(this, SPARKWISE_CREDENTIALS_TYPE, {
-                            method: 'POST',
-                            url: `${sparkwiseUrl}/auth-v1/login`,
-                            headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-                            body: { email: username, password: password },
-                            json: true,
-                        });
-                        const token = loginResponse.tokens.idToken;
-                        if (!token) {
-                            throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Login failed: No token returned');
-                        }
-                        let headers = {
-                            accept: 'application/json',
-                            Authorization: token,
-                        };
-                        if (sparkwiseTenantId !== '') {
-                            headers['sw-tenant-id'] = sparkwiseTenantId;
-                        }
                         const publications = await this.helpers.httpRequestWithAuthentication.call(this, SPARKWISE_CREDENTIALS_TYPE, {
                             method: 'GET',
                             url: `${sparkwiseUrl}/registry-v1/publications`,
-                            headers: headers,
                             json: true,
+                            encoding: 'json',
                         });
                         if (!Array.isArray(publications)) {
                             throw new n8n_workflow_1.NodeOperationError(this.getNode(), 'Publications response is not an array');
